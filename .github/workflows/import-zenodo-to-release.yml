@@ -41,18 +41,22 @@ jobs:
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
 
           TAG="zenodo-import-v1"
           TITLE="Zenodo imported archives"
 
-          if gh release view "$TAG" >/dev/null 2>&1; then
+          if gh release view "$TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
             echo "Release already exists. Replacing assets..."
-            gh release upload "$TAG" files/* --clobber
+            gh release upload "$TAG" files/* \
+              --repo "$GH_REPO" \
+              --clobber
           else
             echo "Creating release..."
             gh release create "$TAG" files/* \
+              --repo "$GH_REPO" \
               --title "$TITLE" \
               --notes "Zenodo archives imported directly using GitHub Actions."
           fi
