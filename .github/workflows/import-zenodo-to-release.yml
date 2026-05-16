@@ -1,0 +1,58 @@
+name: Import Zenodo archives to GitHub Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Zenodo archives
+        run: |
+          set -euo pipefail
+
+          mkdir -p files
+
+          echo "Downloading filev01..."
+          curl \
+            --fail \
+            --location \
+            --retry 5 \
+            --retry-all-errors \
+            --output "files/filev01-record-16884345.zip" \
+            "https://zenodo.org/api/records/16884345/files-archive"
+
+          echo "Downloading filev02..."
+          curl \
+            --fail \
+            --location \
+            --retry 5 \
+            --retry-all-errors \
+            --output "files/filev02-record-16929592.zip" \
+            "https://zenodo.org/api/records/16929592/files-archive"
+
+          echo "Downloaded files:"
+          ls -lh files
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          TAG="zenodo-import-v1"
+          TITLE="Zenodo imported archives"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release already exists. Replacing assets..."
+            gh release upload "$TAG" files/* --clobber
+          else
+            echo "Creating release..."
+            gh release create "$TAG" files/* \
+              --title "$TITLE" \
+              --notes "Zenodo archives imported directly using GitHub Actions."
+          fi
